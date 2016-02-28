@@ -9,7 +9,7 @@
 uint unk;
 uint total_size <format=hex>;
 uint list_item_count;
-uint unk_b;
+uint unk_b <format=hex>;
 uint next_section <format=hex>; // + 10h (address relative to this field)
 struct
 {
@@ -20,7 +20,12 @@ struct
     uint always_one;
     uint loc_addr <format=hex>;
     uint loc_file;
-}items[list_item_count];
+}list_item[list_item_count];
+
+   Printf("File:    %s    \n Len:    %u    \n Ver:    %u    \nHash:    %#x   \n Loc:    %u:%000u", "asdf", 1, 1, 1, 1, 1);
+    //ReadReadUInt();
+
+
 
 uint string_pointer_array[list_item_count];  // 2424/4 = 606
 // total size of the string blob => 23724 bytes
@@ -29,8 +34,17 @@ uint string_pointer_array[list_item_count];  // 2424/4 = 606
 // addr 23669 points to the last string minus 4 (an uint as big as the field itself)
 // each pointer is relative to the string blob start minus its own size
 // str_base + (str_ptr - 4)
-//    19412 + (23644   - 4) = 43048 [A828h]
+//    19412 + (23644   - 4) $ 43048 [A828h] (nope)
 //    19412 + (23669   - 4) = 43077 [A845h]
+
+
+// wait, it's simpler than that, measuring from the right location
+// back it gives us the original pointer position, like this:
+
+// cur_offset + contents = string_start
+//      16988 +     2424 = 19412 [4BD4h] OK // 1st array entry
+//      19404 +    23644 = 43048 [A828h] OK // last - 1
+//      19408 +    23669 = 43077 [A845h] OK // last
 
 
 //string str; // at 0x4BD4 // size: 2Ch
