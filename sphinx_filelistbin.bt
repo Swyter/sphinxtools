@@ -16,11 +16,13 @@ struct
     uint len;
     uint hash <format=hex>;
     uint ver;
-
-    uint thing[2];
+    uint unk_flags <format=hex>;
+    uint always_one;
     uint loc_addr <format=hex>;
     uint loc_file;
 }items[list_item_count];
 
 uint section_size;
-uint bump[section_size];
+uint bump[section_size/4];  // 2424/4 = 606
+
+string str;
