@@ -1,10 +1,10 @@
 //--------------------------------------
 //--- 010 Editor v6.0.3 Binary Template
 //
-// File: Sphinx Filelist.bin descriptor
-// Author: Swyter
+//     File: Sphinx Filelist.bin descriptor
+//   Author: Swyter
 // Revision: 2016-02-28
-// Purpose: For the GameCube/PAL version
+//  Purpose: For the GameCube/PAL version
 //--------------------------------------
 
 BigEndian();
@@ -56,21 +56,21 @@ struct
 
 local uint i;
 local uint filename_addr;
-local string tmp_filename;
+local string filename_stri;
 
 for (i=0; i<list_item_count; i++)
 {
     filename_addr = startof(string_pointer_array[i]) + string_pointer_array[i];
-    tmp_filename = ReadString(filename_addr);
+    filename_stri = ReadString(filename_addr);
 
-    Printf("%d",startof(string_pointer_array[i]) + string_pointer_array[i]);
-    
-     Printf("\nFile:    %s (string at %#x)    \n Len:    %u    \n Ver:    %u    \nHash:    %#x   \n Loc: %9x:%03u\n--\n",
-    tmp_filename,
-    filename_addr,
-    list_item[i].len,
-    list_item[i].ver,
-    list_item[i].hash,
-    list_item[i].loc_addr,
-    list_item[i].loc_file);
+    Printf("\nFile:    %s (string at %#x)    \n Len:    %u    \n Ver:    %u    \nFlag:    %u    \nHash:    %#x   \n Loc:   %9x:%03u\n--\n",
+        filename_stri,
+        filename_addr,
+        list_item[i].len,
+        list_item[i].ver,
+        list_item[i].unk_flags,
+        list_item[i].hash,
+        list_item[i].loc_addr,
+        list_item[i].loc_file
+    );
 }
