@@ -1,6 +1,6 @@
 /* Structs of the filelist.bin file were reverse engineered with 010 editor from
    the contents stored in filelist.txt, also included in the GCN disk.
-   
+
    Should work with various versions and platforms of Eurocom's EngineX with little work */
 
 #include <stdint.h>
@@ -8,11 +8,11 @@
 
 struct header
 {
-	uint8_t magic;
-	uint8_t total_size; // <format=hex>;
-	uint8_t list_item_count;
-	uint8_t unk_b; // <format=hex>;
-	uint8_t next_section; // <format=hex>; // + 10h (address relative to this field)
+    uint8_t magic;
+    uint8_t total_size; // <format=hex>;
+    uint8_t list_item_count;
+    uint8_t unk_b; // <format=hex>;
+    uint8_t next_section; // <format=hex>; // + 10h (address relative to this field)
 };
 
 struct list_item
@@ -28,20 +28,24 @@ struct list_item
 
 void main(int argc, char *argv[])
 {
-	puts("\n"
-	     "  SPHINX AND THE CURSED MUMMY «FILELIST» EXTRACTOR              \n"
-		 "  --------------------------------------------------------------\n"
-	     "  (C) 2016-02-28 Created by Swyter <swyterzone+sphinx@gmail.com>\n"
-	     "\n"
-	     "  Licensed under MIT-like terms, this is a FOSS program.        \n");
+    puts("\n"
+         "  SPHINX AND THE CURSED MUMMY «FILELIST» EXTRACTOR              \n"
+         "  --------------------------------------------------------------\n"
+         "  (C) 2016-02-28 Created by Swyter <swyterzone+sphinx@gmail.com>\n"
+         "\n"
+         "  Licensed under MIT-like terms, this is a FOSS program.        \n");
 
-	if (argc != 2)
-	{
-		printf("  This program extracts game files from filebin.0XX containers \n"
-		       "  by reading the same filelist.bin descriptor used by the game.\n"
-	           "\n"
-		       "  > USAGE: %s <filelist.bin>\n\n", argv[0]);
-		return;
-	}
+    if (argc == 2) goto extract;
 
+    printf("  This program extracts game files from filebin.0XX containers \n"
+           "  by reading the same filelist.bin descriptor used by the game.\n"
+           "\n"
+           "  > USAGE: %s <filelist.bin>\n\n", argv[0]);
+    return;
+
+extract:
+    puts("  [-] Extracting files...\n");
+
+
+    printf("%-50s : Len %-10u : Ver %-4u : Hash %#-10x: Loc  %-11x:%03u\n", "asdf", 1, 1, 1, 1, 1);
 }
