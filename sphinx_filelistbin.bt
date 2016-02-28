@@ -32,8 +32,11 @@ uint string_pointer_array[list_item_count];  // 2424/4 = 606
 //    19412 + (23669   - 4) = 43077 [A845h]
 
 
-string str; // at 0x4BD4 // size: 2Ch
-string strb; // at 0x4BD4 // size: 2Ch
-
+//string str; // at 0x4BD4 // size: 2Ch
+//string strb; // at 0x4BD4 // size: 2Ch
+struct
+{
+    string ss <optimize=false>;
+}ss[list_item_count] <optimize=false>;
 // 2464 - 2424 >>> Result = 40 [28h]
 //2495 - 2464 >>> Result = 31 [1Fh]
