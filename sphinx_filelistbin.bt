@@ -6,8 +6,11 @@
 // Revision:
 // Purpose:
 //--------------------------------------
-
-uint unk[5];
+uint unk;
+uint total_size <format=hex>;
+uint list_item_count;
+uint unk_b;
+uint next_section <format=hex>;
 struct
 {
     uint len;
@@ -17,4 +20,7 @@ struct
     uint thing[2];
     uint loc_addr <format=hex>;
     uint loc_file;
-}a[32];
+}items[list_item_count];
+
+uint section_size;
+uint bump[section_size];
