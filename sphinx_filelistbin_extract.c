@@ -102,15 +102,13 @@ extract:
     if (ntohl(head->total_size) != size)
         return;
 
-    for (struct list_item *item = map + sizeof(struct header); (size_t) item < (size_t) head + (sizeof(struct list_item) * ntohl(head->list_item_count)) ; item++)
+    uint32_t *string_pointer = (uint32_t *)((size_t) &head->next_section + ntohl(head->next_section));
+
+    for (struct list_item *item = map + sizeof(struct header); (size_t) item < (size_t) head + (sizeof(struct list_item) * ntohl(head->list_item_count)) ; item++, string_pointer++)
     {
-
-        uint32_t *string_pointer = (uint32_t *)(((size_t) &head->next_section) + ntohl(head->next_section));
-
-
         printf(
             "%-50s : Len %10u : Ver %4u : Hash %#010x : Loc %11x:%03u\n",
-            (size_t)string_pointer + ntohl(*string_pointer),  //((size_t) &head->next_section - (size_t)head) + ntohl(head->next_section),
+            (size_t)string_pointer + ntohl(*string_pointer),
             ntohl(item->len),
             ntohl(item->ver),
             ntohl(item->hash),
