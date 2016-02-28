@@ -52,21 +52,25 @@ struct
     string ss <optimize=false>;
 }ss[list_item_count] <optimize=false>;
 // 2464 - 2424 >>> Result = 40 [28h]
-//2495 - 2464 >>> Result = 31 [1Fh]
+// 2495 - 2464 >>> Result = 31 [1Fh]
 
+local uint i;
+local uint filename_addr;
+local string tmp_filename;
 
-   //ReadUInt();
+for (i=0; i<list_item_count; i++)
+{
+    filename_addr = startof(string_pointer_array[i]) + string_pointer_array[i];
+    tmp_filename = ReadString(filename_addr);
 
-local uint filename_addr = startof(string_pointer_array[0]) + string_pointer_array[0];
-
-local string tmp_filename = ReadString(filename_addr);
-Printf("%d",startof(string_pointer_array[0]) + string_pointer_array[0]);
-
- Printf("\nFile:    %s (string at %#x)    \n Len:    %u    \n Ver:    %u    \nHash:    %#x   \n Loc: %9x:%03u\n--\n",
-tmp_filename,
-filename_addr,
-list_item[0].len,
-list_item[0].ver,
-list_item[0].hash,
-list_item[0].loc_addr,
-list_item[0].loc_file);
+    Printf("%d",startof(string_pointer_array[i]) + string_pointer_array[i]);
+    
+     Printf("\nFile:    %s (string at %#x)    \n Len:    %u    \n Ver:    %u    \nHash:    %#x   \n Loc: %9x:%03u\n--\n",
+    tmp_filename,
+    filename_addr,
+    list_item[i].len,
+    list_item[i].ver,
+    list_item[i].hash,
+    list_item[i].loc_addr,
+    list_item[i].loc_file);
+}
