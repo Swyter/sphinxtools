@@ -9,11 +9,14 @@
 
 BigEndian();
 
-uint unk;
-uint total_size <format=hex>;
-uint list_item_count;
-uint unk_b <format=hex>;
-uint next_section <format=hex>; // + 10h (address relative to this field)
+uint magic;                     /* Always 5 (?) */
+uint total_size <format=hex>;   /* Total file size */
+uint list_item_count;           /* Number of files listed in here */
+uint unk <format=hex>;          /* 0x00010000, no idea, seems like a flag */
+uint next_section <format=hex>; /* + 10h (address relative to this field).
+                                   Points to an array of null-terminated relative pointers of `list_item_count` size (each of them 4 bytes long)
+                                   that goes right after the listed items. This array stores filenames and shares index with its list item, so you can
+                                   retrieve the filename of every entry by getting its index and doing ptr_offset + ptr_content */
 struct
 {
     uint len;
