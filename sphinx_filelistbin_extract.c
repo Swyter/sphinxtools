@@ -47,5 +47,5 @@ extract:
     puts("  [-] Extracting files...\n");
 
 
-    printf("%-50s : Len %-10u : Ver %-4u : Hash %#-10x: Loc  %-11x:%03u\n", "asdf", 1, 1, 1, 1, 1);
+    printf("%-50s : Len %10u : Ver %4u : Hash %#010x : Loc %11x:%03u\n", "asdf", 1, 1, 1, 1, 1);
 }
