@@ -25,15 +25,6 @@ struct
     uint loc_file;
 }list_item[list_item_count];
 
-   //ReadUInt();
-//local string tmp = ReadString(19412);
-Printf("%d",sizeof(list_item[0]));
-
-  // Printf("\nFile:    %s    \n Len:    %u    \n Ver:    %u    \nHash:    %#x   \n Loc:    %u:%000u\n--\n", tmp, 1, 1, 1, 1, 1);
-
-
-
-
 uint string_pointer_array[list_item_count];  // 2424/4 = 606
 // total size of the string blob => 23724 bytes
 // maximum size of incremental numbers => 23669
@@ -62,3 +53,18 @@ struct
 }ss[list_item_count] <optimize=false>;
 // 2464 - 2424 >>> Result = 40 [28h]
 //2495 - 2464 >>> Result = 31 [1Fh]
+
+
+   //ReadUInt();
+local string tmp = ReadString(19412);
+Printf("%d",sizeof(list_item[0]));
+
+
+
+ Printf("\nFile:    %s    \n Len:    %u    \n Ver:    %u    \nHash:    %#x   \n Loc: %9x:%03u\n--\n",
+        tmp,
+list_item[0].len,
+list_item[0].ver,
+list_item[0].hash,
+list_item[0].loc_addr,
+list_item[0].loc_file);
