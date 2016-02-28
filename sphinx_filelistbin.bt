@@ -10,7 +10,7 @@ uint unk;
 uint total_size <format=hex>;
 uint list_item_count;
 uint unk_b;
-uint next_section <format=hex>;
+uint next_section <format=hex>; // + 10h (address relative to this field)
 struct
 {
     uint len;
@@ -22,7 +22,10 @@ struct
     uint loc_file;
 }items[list_item_count];
 
-uint section_size;
-uint bump[section_size/4];  // 2424/4 = 606
+uint section_size[list_item_count];  // 2424/4 = 606
 
-string str;
+string str; // at 0x4BD4 // size: 2Ch
+string strb; // at 0x4BD4 // size: 2Ch
+
+// 2464 - 2424 >>> Result = 40 [28h]
+//2495 - 2464 >>> Result = 31 [1Fh]
