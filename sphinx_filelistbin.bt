@@ -1,0 +1,20 @@
+//--------------------------------------
+//--- 010 Editor v6.0.3 Binary Template
+//
+// File:
+// Author:
+// Revision:
+// Purpose:
+//--------------------------------------
+
+uint unk[5];
+struct
+{
+    uint len;
+    uint hash <format=hex>;
+    uint ver;
+
+    uint thing[2];
+    uint loc_addr <format=hex>;
+    uint loc_file;
+}a[32];
