@@ -6,6 +6,9 @@
 // Revision: 2016-02-28
 // Purpose: For the GameCube/PAL version
 //--------------------------------------
+
+BigEndian();
+
 uint unk;
 uint total_size <format=hex>;
 uint list_item_count;
@@ -22,8 +25,12 @@ struct
     uint loc_file;
 }list_item[list_item_count];
 
-   Printf("File:    %s    \n Len:    %u    \n Ver:    %u    \nHash:    %#x   \n Loc:    %u:%000u", "asdf", 1, 1, 1, 1, 1);
-    //ReadReadUInt();
+   //ReadUInt();
+//local string tmp = ReadString(19412);
+Printf("%d",sizeof(list_item[0]));
+
+  // Printf("\nFile:    %s    \n Len:    %u    \n Ver:    %u    \nHash:    %#x   \n Loc:    %u:%000u\n--\n", tmp, 1, 1, 1, 1, 1);
+
 
 
 
