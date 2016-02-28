@@ -56,13 +56,15 @@ struct
 
 
    //ReadUInt();
-local string tmp = ReadString(19412);
-Printf("%d",sizeof(list_item[0]));
 
+local uint filename_addr = startof(string_pointer_array[0]) + string_pointer_array[0];
 
+local string tmp_filename = ReadString(filename_addr);
+Printf("%d",startof(string_pointer_array[0]) + string_pointer_array[0]);
 
- Printf("\nFile:    %s    \n Len:    %u    \n Ver:    %u    \nHash:    %#x   \n Loc: %9x:%03u\n--\n",
-        tmp,
+ Printf("\nFile:    %s (string at %#x)    \n Len:    %u    \n Ver:    %u    \nHash:    %#x   \n Loc: %9x:%03u\n--\n",
+tmp_filename,
+filename_addr,
 list_item[0].len,
 list_item[0].ver,
 list_item[0].hash,
