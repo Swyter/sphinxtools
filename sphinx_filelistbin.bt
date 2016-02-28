@@ -1,10 +1,10 @@
 //--------------------------------------
 //--- 010 Editor v6.0.3 Binary Template
 //
-// File:
-// Author:
-// Revision:
-// Purpose:
+// File: Sphinx Filelist.bin descriptor
+// Author: Swyter
+// Revision: 2016-02-28
+// Purpose: For the GameCube/PAL version
 //--------------------------------------
 uint unk;
 uint total_size <format=hex>;
@@ -22,7 +22,15 @@ struct
     uint loc_file;
 }items[list_item_count];
 
-uint section_size[list_item_count];  // 2424/4 = 606
+uint string_pointer_array[list_item_count];  // 2424/4 = 606
+// total size of the string blob => 23724 bytes
+// maximum size of incremental numbers => 23669
+
+// addr 23669 points to the last string minus 4 (an uint as big as the field itself)
+// each pointer is relative to the string blob start minus its own size
+// str_base + (str_ptr - 4)
+//    19412 + (23669   - 4) = 43077 [A845h]
+
 
 string str; // at 0x4BD4 // size: 2Ch
 string strb; // at 0x4BD4 // size: 2Ch
