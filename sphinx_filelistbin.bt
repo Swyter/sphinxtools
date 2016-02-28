@@ -29,6 +29,7 @@ uint string_pointer_array[list_item_count];  // 2424/4 = 606
 // addr 23669 points to the last string minus 4 (an uint as big as the field itself)
 // each pointer is relative to the string blob start minus its own size
 // str_base + (str_ptr - 4)
+//    19412 + (23644   - 4) = 43048 [A828h]
 //    19412 + (23669   - 4) = 43077 [A845h]
 
 
