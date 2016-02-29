@@ -126,7 +126,7 @@ extract:
 
         extract_to(argv[1], filepath, ntohl(item->loc_addr), ntohl(item->loc_file), ntohl(item->len));
 
-        return;
+        //return;
     }
 
     munmap(map, size);
@@ -170,8 +170,10 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
     fstat(fd_container, &s);
 
     size_t container_size = s.st_size;
-    size_t extracted_size = len + 1;
+    size_t extracted_size = len;
 
+    /* the file we have just created is still empty, zero-fill with the needed length so
+       that we have something work work on while mmap'ing, we don't want bus errors */
     ftruncate (fd_extracted, extracted_size);
 
     void *container_map = mmap(0, container_size, PROT_READ,  MAP_PRIVATE, fd_container, 0);
@@ -192,7 +194,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
 
     printf("\n %x %x %x %u\n", extracted_map, container_map, loc_addr, len);
 
-    memcpy(extracted_map, container_map, len);
+    memcpy(extracted_map, container_map + loc_addr, len);
 
     munmap(container_map, container_size);
     munmap(extracted_map, extracted_size);
