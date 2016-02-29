@@ -135,10 +135,12 @@ extract:
 
 void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t loc_file, uint32_t len)
 {
-    char containerpath[255];
-    char extractedpath[255];
+    char containerpath[255] = {0};
+    char extractedpath[255] = {0};
+    char extractedfldr[255] = "./";
 
     strncpy(containerpath, descriptor, sizeof(containerpath));
+    strncpy(extractedpath, filename,   sizeof(extractedpath));
 
     char *dot = strrchr(containerpath, '.') + 1;
 
@@ -148,9 +150,21 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
 
     snprintf(dot, sizeof("000"), "%03u", loc_file);
 
-    mkdir("x:", 0744);
 
-    printf("-> %s <-", strrchr(filename, '\\'));
+    char *slash = strrchr(extractedpath, '\\');
+    char *token = strtok(extractedpath, "\\");
+
+    do
+    {
+       snprintf(&extractedfldr[0] + strlen(extractedfldr), sizeof(extractedfldr), "%s/", token);
+
+       mkdir(extractedfldr, 0744);
+       printf(" «%s» (%s)", token, extractedfldr);
+
+    }
+    while((token = strtok(NULL, "\\")) && token < slash);
+
+    return;
 
     snprintf(extractedpath, sizeof(extractedpath), "./x:/%s", strrchr(filename, '\\') + 1);
 
