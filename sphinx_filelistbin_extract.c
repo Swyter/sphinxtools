@@ -137,7 +137,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
 {
     char containerpath[255] = {0};
     char extractedpath[255] = {0};
-    char extractedfldr[255] = "./";
+    char extractedfldr[255] = ".";
 
     strncpy(containerpath, descriptor, sizeof(containerpath));
     strncpy(extractedpath, filename,   sizeof(extractedpath));
@@ -156,20 +156,18 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
 
     do
     {
-       snprintf(&extractedfldr[0] + strlen(extractedfldr), sizeof(extractedfldr), "%s/", token);
+       snprintf(&extractedfldr[0] + strlen(extractedfldr), sizeof(extractedfldr), "/%s", token);
 
-       mkdir(extractedfldr, 0744);
-       printf(" «%s» (%s)", token, extractedfldr);
+       if (token < slash)
+         mkdir(extractedfldr, 0744);
 
-    }
-    while((token = strtok(NULL, "\\")) && token < slash);
-
-    return;
+       //printf(" «%s» (%s)", token, extractedfldr);
+    } while((token = strtok(NULL, "\\")));
 
     snprintf(extractedpath, sizeof(extractedpath), "./x:/%s", strrchr(filename, '\\') + 1);
 
     int fd_container = open(containerpath, O_RDONLY);
-    int fd_extracted = open(extractedpath, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+    int fd_extracted = open(extractedfldr, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
     if (fd_container < 0 || fd_extracted < 0)
     {
