@@ -136,6 +136,7 @@ extract:
 void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t loc_file, uint32_t len)
 {
     char containerpath[255];
+    char extractedpath[255];
 
     strncpy(containerpath, descriptor, sizeof(containerpath));
 
@@ -151,8 +152,10 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
 
     printf("-> %s <-", strrchr(filename, '\\'));
 
+    snprintf(extractedpath, sizeof(extractedpath), "./x:/%s", strrchr(filename, '\\') + 1);
+
     int fd_container = open(containerpath, O_RDONLY);
-    int fd_extracted = open(strrchr(filename, '\\') + 1, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+    int fd_extracted = open(extractedpath, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
     if (fd_container < 0 || fd_extracted < 0)
     {
