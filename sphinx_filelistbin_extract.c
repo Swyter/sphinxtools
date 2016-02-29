@@ -164,8 +164,6 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
        //printf(" «%s» (%s)", token, extractedfldr);
     } while((token = strtok(NULL, "\\")));
 
-    snprintf(extractedpath, sizeof(extractedpath), "./x:/%s", strrchr(filename, '\\') + 1);
-
     int fd_container = open(containerpath, O_RDONLY);
     int fd_extracted = open(extractedfldr, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
