@@ -36,7 +36,7 @@ struct list_item
     uint32_t loc_file;
 };
 
-void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t loc_file);
+void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t loc_file, uint32_t len);
 
 void main(int argc, char *argv[])
 {
@@ -124,14 +124,14 @@ extract:
             ntohl(item->loc_file)
         );
 
-        extract_to(argv[1], filepath, ntohl(item->loc_addr), ntohl(item->loc_file));
+        extract_to(argv[1], filepath, ntohl(item->loc_addr), ntohl(item->loc_file), ntohl(item->len));
     }
 
     munmap(map, size);
     close(fd);
 }
 
-void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t loc_file)
+void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t loc_file, uint32_t len)
 {
     char containerpath[255];
 
@@ -139,10 +139,18 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
 
     char *dot = strrchr(containerpath, '.') + 1;
 
-    if (!((dot - &containerpath) + sizeof("000") >= sizeof(containerpath)))
+    /* does it fit? or will overflow? */
+
+    //printf("%u %u %u", (dot - containerpath), sizeof("000"), sizeof(containerpath));
+    if ((dot - containerpath) + sizeof("000") > sizeof(containerpath))
         return;
 
     snprintf(dot, sizeof("000"), "%03u", loc_file);
+
+    printf(containerpath);
+
+
+    mkdir("x:", 0744);
 
     return;
 
@@ -151,31 +159,43 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
 
 
 
-    int fd = open(containerpath, O_RDONLY);
+    int fd_container = open(containerpath, O_RDONLY);
+    int fd_extracted = open(containerpath, O_WRONLY | O_CREAT);
 
-    if (fd < 0)
+    if (fd_container < 0 && fd_extracted < 0)
     {
         puts("open failed");
+
+        close(fd_container);
+        close(fd_extracted);
+
         return;
     }
 
     struct stat s;
-    fstat(fd, &s);
+    fstat(fd_container, &s);
 
-    size_t size = s.st_size;
+    size_t container_size = s.st_size;
+    size_t extracted_size = len;
 
-    void *map = mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
+    void *container_map = mmap(0, container_size, PROT_READ, MAP_PRIVATE, fd_container, 0);
+    void *extracted_map = mmap(0, extracted_size, PROT_WRITE, MAP_PRIVATE, fd_extracted, 0);
 
-    if (map == MAP_FAILED)
+    if (container_map == MAP_FAILED || extracted_map == MAP_FAILED)
     {
         printf("map failed: %s\n", strerror(errno));
+
+        munmap(container_map, container_size);
+        munmap(extracted_map, extracted_size);
+
         return;
     }
 
+    memcpy(extracted_map, container_map + loc_addr, len);
 
-    mkdir("x:", 0766);
+    munmap(container_map, container_size);
+    munmap(extracted_map, extracted_size);
 
-
-    munmap(map, size);
-    close(fd);
+    close(fd_container);
+    close(fd_extracted);
 }
