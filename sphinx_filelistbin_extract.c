@@ -151,8 +151,6 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
 
     mkdir("x:", 0744);
 
-    //return;
-
     int fd_container = open(containerpath, O_RDONLY);
     int fd_extracted = open("./extracted.bin", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
@@ -160,10 +158,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
     {
         printf("\nopen failed: %s\n", strerror(errno));
 
-        close(fd_container);
-        close(fd_extracted);
-
-        return;
+        goto close;
     }
 
     struct stat s;
@@ -182,23 +177,18 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
     if (container_map == MAP_FAILED || extracted_map == MAP_FAILED)
     {
         printf("\nmap failed: %s\n", strerror(errno));
-
-        munmap(container_map, container_size);
-        munmap(extracted_map, extracted_size);
-
-        close(fd_container);
-        close(fd_extracted);
-
-        return;
+        goto cleanup;
     }
 
     printf("\n %x %x %x %u\n", extracted_map, container_map, loc_addr, len);
 
     memcpy(extracted_map, container_map + loc_addr, len);
 
+cleanup:
     munmap(container_map, container_size);
     munmap(extracted_map, extracted_size);
 
+close:
     close(fd_container);
     close(fd_extracted);
 }
