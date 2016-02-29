@@ -82,7 +82,7 @@ extract:
 
     if (fd < 0)
     {
-        puts("open failed");
+        printf("\nopen failed: %s\n", strerror(errno));
         return;
     }
 
@@ -95,7 +95,7 @@ extract:
 
     if (map == MAP_FAILED)
     {
-        printf("map failed: %s\n", strerror(errno));
+        printf("\nmap failed: %s\n", strerror(errno));
         return;
     }
 
@@ -125,6 +125,8 @@ extract:
         );
 
         extract_to(argv[1], filepath, ntohl(item->loc_addr), ntohl(item->loc_file), ntohl(item->len));
+
+        return;
     }
 
     munmap(map, size);
@@ -140,8 +142,6 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
     char *dot = strrchr(containerpath, '.') + 1;
 
     /* does it fit? or will overflow? */
-
-    //printf("%u %u %u", (dot - containerpath), sizeof("000"), sizeof(containerpath));
     if ((dot - containerpath) + sizeof("000") > sizeof(containerpath))
         return;
 
@@ -149,22 +149,16 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
 
     printf(containerpath);
 
-
     mkdir("x:", 0744);
 
-    return;
-
-    //*dot++ = 0
-
-
-
+    //return;
 
     int fd_container = open(containerpath, O_RDONLY);
-    int fd_extracted = open(containerpath, O_WRONLY | O_CREAT);
+    int fd_extracted = open("./extracted.bin", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
-    if (fd_container < 0 && fd_extracted < 0)
+    if (fd_container < 0 || fd_extracted < 0)
     {
-        puts("open failed");
+        printf("\nopen failed: %s\n", strerror(errno));
 
         close(fd_container);
         close(fd_extracted);
@@ -176,22 +170,29 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
     fstat(fd_container, &s);
 
     size_t container_size = s.st_size;
-    size_t extracted_size = len;
+    size_t extracted_size = len + 1;
 
-    void *container_map = mmap(0, container_size, PROT_READ, MAP_PRIVATE, fd_container, 0);
-    void *extracted_map = mmap(0, extracted_size, PROT_WRITE, MAP_PRIVATE, fd_extracted, 0);
+    ftruncate (fd_extracted, extracted_size);
+
+    void *container_map = mmap(0, container_size, PROT_READ,  MAP_PRIVATE, fd_container, 0);
+    char *extracted_map = mmap(0, extracted_size, PROT_WRITE, MAP_SHARED,  fd_extracted, 0);
 
     if (container_map == MAP_FAILED || extracted_map == MAP_FAILED)
     {
-        printf("map failed: %s\n", strerror(errno));
+        printf("\nmap failed: %s\n", strerror(errno));
 
         munmap(container_map, container_size);
         munmap(extracted_map, extracted_size);
 
+        close(fd_container);
+        close(fd_extracted);
+
         return;
     }
 
-    memcpy(extracted_map, container_map + loc_addr, len);
+    printf("\n %x %x %x %u\n", extracted_map, container_map, loc_addr, len);
+
+    memcpy(extracted_map, container_map, len);
 
     munmap(container_map, container_size);
     munmap(extracted_map, extracted_size);
