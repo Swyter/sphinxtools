@@ -95,7 +95,7 @@ extract:
 
     if (map == MAP_FAILED)
     {
-        printf("\nmap failed: %s\n", strerror(errno));
+        printf("\nmmap failed: %s\n", strerror(errno));
         return;
     }
 
@@ -147,18 +147,16 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
 
     snprintf(dot, sizeof("000"), "%03u", loc_file);
 
-    printf(containerpath);
-
     mkdir("x:", 0744);
 
+    printf("-> %s <-", strrchr(filename, '\\'));
+
     int fd_container = open(containerpath, O_RDONLY);
-    int fd_extracted = open("./extracted.bin", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+    int fd_extracted = open(strrchr(filename, '\\') + 1, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
     if (fd_container < 0 || fd_extracted < 0)
     {
-        printf("\nopen failed: %s\n", strerror(errno));
-
-        goto close;
+        printf("\nopen failed: %s\n", strerror(errno)); goto close;
     }
 
     struct stat s;
@@ -168,7 +166,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
     size_t extracted_size = len;
 
     /* the file we have just created is still empty, zero-fill with the needed length so
-       that we have something work work on while mmap'ing, we don't want bus errors */
+       that we have something to work with while mmap'ing, we don't want bus errors */
     ftruncate (fd_extracted, extracted_size);
 
     void *container_map = mmap(0, container_size, PROT_READ,  MAP_PRIVATE, fd_container, 0);
@@ -176,11 +174,10 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
 
     if (container_map == MAP_FAILED || extracted_map == MAP_FAILED)
     {
-        printf("\nmap failed: %s\n", strerror(errno));
-        goto cleanup;
+        printf("\nmmap failed: %s\n", strerror(errno)); goto cleanup;
     }
 
-    printf("\n %x %x %x %u\n", extracted_map, container_map, loc_addr, len);
+    //printf("\n %x %x %x %u\n", extracted_map, container_map, loc_addr, len);
 
     memcpy(extracted_map, container_map + loc_addr, len);
 
