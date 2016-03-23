@@ -3,30 +3,43 @@
 //
 //     File: Sphinx Filelist.bin descriptor
 //   Author: Swyter
-// Revision: 2016-02-28
-//  Purpose: For the GameCube/PAL version
+// Revision: 2016-02-28, 2016-03-23
+//  Purpose: For the GameCube (PAL/NTSC) and PlayStation 2 (PAL) versions
 //--------------------------------------
 
-BigEndian();
+/* gamecube is big endian,
+   ps2 is little endian */
+if (ReadByte() == 0x05) LittleEndian(); else BigEndian();
 
 uint magic;                     /* Always 5 (?) */
 uint total_size <format=hex>;   /* Total file size */
 uint list_item_count;           /* Number of files listed in here */
-uint unk <format=hex>;          /* 0x00010000, no idea, seems like a flag */
+uint16 unk_a <format=hex>;      /* 0x0001 and 0x0000 respectively, no idea, seems like a flag or counter */
+uint16 unk_b <format=hex>;
 uint next_section <format=hex>; /* + 10h (address relative to this field).
                                    Points to an array of null-terminated relative pointers of `list_item_count` size (each of them 4 bytes long)
                                    that goes right after the listed items. This array stores filenames and shares index with its list item, so you can
                                    retrieve the filename of every entry by getting its index and doing ptr_offset + ptr_content */
+
 struct
 {
-    uint len;
+    uint len <format=hex>;
     uint hash <format=hex>;
     uint ver;
     uint unk_flags <format=hex>;
-    uint always_one;
-    uint loc_addr <format=hex>;
-    uint loc_file;
-}list_item[list_item_count];
+
+    /* seems like the same file can be stored in multiple places (up to 5!) along the blob
+       file, probably to reduce disc seek times? so far only used in the PS2 version */
+
+    uint offset_count;
+
+    struct
+    {
+        uint loc_addr <format=hex>;
+        uint loc_file;
+    }offsets[offset_count] <optimize=false>;
+
+}list_item[list_item_count] <optimize=false>;
 
 uint string_pointer_array[list_item_count];  // 2424/4 = 606
 // total size of the string blob => 23724 bytes
@@ -58,6 +71,7 @@ struct
 // 2495 - 2464 >>> Result = 31 [1Fh]
 
 local uint i;
+local uint j;
 local uint filename_addr;
 local string filename_stri;
 
@@ -66,14 +80,37 @@ for (i=0; i<list_item_count; i++)
     filename_addr = startof(string_pointer_array[i]) + string_pointer_array[i];
     filename_stri = ReadString(filename_addr);
 
-    Printf("\nFile:    %s (string at %#x)    \n Len:    %u    \n Ver:    %u    \nFlag:    %u    \nHash:    %#x   \n Loc:   %9x:%03u\n--\n",
+    Printf("\nFile:    %s (string at %#x)    \n Len:    %u    \n Ver:    %u    \nFlag:    %#x    \nHash:    %#x   \n Loc:   %9x:%03u",
         filename_stri,
         filename_addr,
         list_item[i].len,
         list_item[i].ver,
         list_item[i].unk_flags,
         list_item[i].hash,
-        list_item[i].loc_addr,
-        list_item[i].loc_file
+        list_item[i].offsets[0].loc_addr,
+        list_item[i].offsets[0].loc_file
     );
+
+    /* if there are additional offsets in other places
+       show them too, comma delimited */
+    for (j=1; j<list_item[i].offset_count; j++)
+     Printf(", %9x:%03u",
+        list_item[i].offsets[j].loc_addr,
+        list_item[i].offsets[j].loc_file);
+
+
+    Printf("\n-- (%d) \n", i);
 }
+
+// 524Ch + 10h = 525ch
+
+// 525ch - 524Ch
+// >>> Result = 16 [10h]
+
+// 48 09 00 00
+
+// 525ch + 2376
+// >>> Result = 23460 [5BA4h]
+
+
+// 21060 bytes / 28
