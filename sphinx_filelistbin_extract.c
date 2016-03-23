@@ -14,15 +14,19 @@
 #include <fcntl.h>
 
 #include <string.h>
-#include <arpa/inet.h>
+#include <endian.h>
+
+#include <stdbool.h>
+#include <stddef.h>
 
 struct header
 {
     uint32_t magic;
     uint32_t total_size; // <format=hex>;
     uint32_t list_item_count;
-    uint32_t unk_b; // <format=hex>;
-    uint32_t next_section; // <format=hex>; // + 10h (address relative to this field)
+    uint16_t unk_a; // <format=hex>;      /* 0x0001 and 0x0000 respectively, no idea, seems like a flag or counter */
+    uint16_t unk_b; // <format=hex>;
+    uint32_t next_section; // <format=hex>; /* + 10h (address relative to this field) */
 };
 
 struct list_item
@@ -31,10 +35,16 @@ struct list_item
     uint32_t hash; // <format=hex>;
     uint32_t ver;
     uint32_t unk_flags; //<format=hex>;
-    uint32_t always_one;
-    uint32_t loc_addr; //<format=hex>;
-    uint32_t loc_file;
+    uint32_t offset_count;
+    struct
+    {
+        uint32_t loc_addr; //<format=hex>;
+        uint32_t loc_file;
+    } offsets[1];
 };
+
+bool is_le = false;
+# define ntohl(val) (!is_le ? be32toh(val) : le32toh(val))
 
 void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t loc_file, uint32_t len);
 
@@ -101,15 +111,34 @@ extract:
 
     struct header *head = (struct header *)map;
 
+    /* GameCube files are stored in big endian/network order, and uses a PowerPC processor,
+       PlayStation 2 files are little endian, mipsel arch, like most Intel computers */
+
+    if (*(uint8_t *)&head->magic == 0x5)
+    {
+        puts("  [i] Switching to little-endian mode (PlayStation 2 game data?)..."); is_le = true;
+    }
 
     printf("%p %p %x %x %x--\n\n", map, head, ntohl(head->magic), ntohl(head->total_size), size);
 
     if (ntohl(head->total_size) != size)
+    {
+        puts("  [x] Invalid total size field, probably a corrupted, unsupported or invalid file!");
         return;
+    }
 
     uint32_t *string_pointer = (uint32_t *)((size_t) &head->next_section + ntohl(head->next_section));
 
-    for (struct list_item *item = map + sizeof(struct header); (size_t) item < (size_t) head + (sizeof(struct list_item) * ntohl(head->list_item_count)) ; item++, string_pointer++)
+    for (
+        struct list_item *item = map + sizeof(struct header);
+
+        /* stop once we go past the next section (which is the string pointer block), not foolproof but works */
+        (size_t) item < ((size_t) &head->next_section + ntohl(head->next_section));
+
+        /* variable-sized makes everything harder, this basically computes `static part` + `dynamic part * entries` */
+        item = (struct list_item *)((size_t) item + (offsetof(struct list_item, offsets)) +
+                                                    (sizeof(item->offsets) * ntohl(item->offset_count))), string_pointer++
+    )
     {
 
         char *filepath = (char *)((size_t) string_pointer + ntohl(*string_pointer));
@@ -120,11 +149,11 @@ extract:
             ntohl(item->len),
             ntohl(item->ver),
             ntohl(item->hash),
-            ntohl(item->loc_addr),
-            ntohl(item->loc_file)
+            ntohl(item->offsets[0].loc_addr),
+            ntohl(item->offsets[0].loc_file)
         );
 
-        extract_to(argv[1], filepath, ntohl(item->loc_addr), ntohl(item->loc_file), ntohl(item->len));
+        extract_to(argv[1], filepath, ntohl(item->offsets[0].loc_addr), ntohl(item->offsets[0].loc_file), ntohl(item->len));
 
         //return;
     }
