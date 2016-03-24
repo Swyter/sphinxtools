@@ -44,7 +44,7 @@ struct list_item
 };
 
 bool is_le = false;
-# define ntohl(val) (!is_le ? be32toh(val) : le32toh(val))
+#define ntohl(val) (!is_le ? be32toh(val) : le32toh(val))
 
 void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t loc_file, uint32_t len);
 

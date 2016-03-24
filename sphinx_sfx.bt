@@ -1,0 +1,61 @@
+//--------------------------------------
+//--- 010 Editor v6.0.3 Binary Template
+//
+// File: Sphinx .sfx files
+// Author: Swyter
+// Revision: 2016-02-29, 2016-03-24
+// Purpose: GameCube version (kind of supports PS2 too)
+//--------------------------------------
+
+// unlike other Eurocom formats for the
+// GCM this one is big endian, wth??
+//LittleEndian();
+
+// further info: looks like the format was originally made for l-endian platforms like the PS2, later ported to b-endian platforms like the GCN resulting
+// in some fields being flipped, others not, in the case of EDB files even its GEOM magic is reversed in GCN, look like is interpreted as a 32bit number/const.
+
+// NOTE: fields prefixed by xx_ depend on platform endianess. GCN = big-e, PS2 = litle-e.
+
+
+LittleEndian();
+
+struct
+{
+    char le_magic[4];  // MUSX [4D 55 53 58]
+
+    /* same as the filename: _bin_gc/music/hce0002a.sfx => E0002Ah
+       (HC may stand for something like `hardcoded` or `HW converted`) */
+    uint le_hash_ref <format=hex>;
+
+    uint le_unk_const <format=hex>;   // 0xc9000000
+    uint le_total_size <format=hex>;  // confirmed
+
+    /* next fields are platform-dependent */
+    if (ReadUInt() == 0x0800) LittleEndian(); else BigEndian();
+
+    uint xx_unk_const_a <format=hex>; // 0x0800
+    uint xx_unk_const_b <format=hex>; // 0x0130
+    uint xx_unk_const_c <format=hex>; // 0x1000
+
+    /* size of the soundbank, basically total_size - 1000h bytes,
+       as the start address of the soundback seems hardcoded at 0x1000 */
+    uint xx_soundbank_sz <format=hex>;
+
+} head;
+
+byte padding_a[0x7e0];
+byte unk_coefs[0x120];
+byte padding_b[0x6e0];
+byte soundbank[head.xx_soundbank_sz];
+
+// adpcm coeffs? at 0x800
+// data bank? starts always at 0x1000 for some reason
+
+
+// these files look empty, interesting:
+// /home/swyter/github/sphinxtools/x:/sphinx/binary/_bin_gc/music/hce00029.sfx
+// /home/swyter/github/sphinxtools/x:/sphinx/binary/_bin_gc/music/hce0002a.sfx
+
+// for comparison:
+// /home/swyter/github/sphinxtools/x:/sphinx/binary/_bin_gc/music/hce00000.sfx
+// /home/swyter/github/sphinxtools/x:/sphinx/binary/_bin_ps2/music/hce00000.sfx
