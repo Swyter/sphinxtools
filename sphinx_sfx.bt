@@ -44,8 +44,12 @@ struct
 } head;
 
 byte padding_a[0x7e0];
-byte unk_coefs[0x120];
-byte padding_b[0x6e0];
+
+/* always starts at 800h, seems to share format between platforms */
+byte unk_coefs[0x130];
+byte padding_b[0x6d0];
+
+/* always starts at 1000h */
 byte soundbank[head.xx_soundbank_sz];
 
 // adpcm coeffs? at 0x800
@@ -59,3 +63,4 @@ byte soundbank[head.xx_soundbank_sz];
 // for comparison:
 // /home/swyter/github/sphinxtools/x:/sphinx/binary/_bin_gc/music/hce00000.sfx
 // /home/swyter/github/sphinxtools/x:/sphinx/binary/_bin_ps2/music/hce00000.sfx
+
