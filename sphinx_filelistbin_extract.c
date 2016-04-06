@@ -119,7 +119,7 @@ extract:
         puts("  [i] Switching to little-endian mode (PlayStation 2 game data?)..."); is_le = true;
     }
 
-    printf("%p %p %x %x %x--\n\n", map, head, ntohl(head->magic), ntohl(head->total_size), size);
+    printf("%p %p %x %x %zx--\n\n", map, head, ntohl(head->magic), ntohl(head->total_size), size);
 
     if (ntohl(head->total_size) != size)
     {
