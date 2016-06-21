@@ -1,0 +1,26 @@
+//--------------------------------------
+//--- 010 Editor v6.0.3 Binary Template
+//
+// File: Sphinx .edb files
+// Author: Swyter
+// Revision: 2016-02-29
+// Purpose: GameCube version
+//--------------------------------------
+
+/* next fields are platform-dependent */
+if (ReadByte() == 'M') LittleEndian(); else BigEndian();
+
+struct
+{
+    char xx_magic[4];  // GEOM
+    uint xx_hash_ref <format=hex>;   // thing
+    uint count;   // Number of items
+    uint unk_const <format=hex>; // Flag?
+    uint unk <format=hex>;
+    uint a <format=hex>;
+    uint total_size_unc <format=hex>; // ???
+    uint total_size <format=hex>; // confirmed
+    uint zero[5];
+    uint unk <format=hex>;
+
+} head;

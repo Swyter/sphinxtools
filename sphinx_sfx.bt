@@ -33,24 +33,28 @@ struct
     /* next fields are platform-dependent */
     if (ReadUInt() == 0x0800) LittleEndian(); else BigEndian();
 
-    uint xx_unk_const_a <format=hex>; // 0x0800
-    uint xx_unk_const_b <format=hex>; // 0x0130
-    uint xx_unk_const_c <format=hex>; // 0x1000
+    uint xx_properties_addr <format=hex>; // 0x0800
+    uint xx_properties_size <format=hex>; // 0x0130
+    uint xx_soundbank_addr <format=hex>;  // 0x1000
 
     /* size of the soundbank, basically total_size - 1000h bytes,
        as the start address of the soundback seems hardcoded at 0x1000 */
-    uint xx_soundbank_sz <format=hex>;
+    uint xx_soundbank_size <format=hex>;
 
 } head;
 
-byte padding_a[0x7e0];
+
+FSeek(head.xx_properties_addr);
 
 /* always starts at 800h, seems to share format between platforms */
-byte unk_coefs[0x130];
-byte padding_b[0x6d0];
+uint unk_coefs[head.xx_properties_size/sizeof(uint)] <format=hex>;
+
+
+FSeek(head.xx_soundbank_addr);
 
 /* always starts at 1000h */
-byte soundbank[head.xx_soundbank_sz];
+ubyte soundbank[head.xx_soundbank_size] <format=hex>;
+
 
 // adpcm coeffs? at 0x800
 // data bank? starts always at 0x1000 for some reason
@@ -63,4 +67,3 @@ byte soundbank[head.xx_soundbank_sz];
 // for comparison:
 // /home/swyter/github/sphinxtools/x:/sphinx/binary/_bin_gc/music/hce00000.sfx
 // /home/swyter/github/sphinxtools/x:/sphinx/binary/_bin_ps2/music/hce00000.sfx
-
