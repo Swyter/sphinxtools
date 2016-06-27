@@ -3,114 +3,125 @@
 //
 //     File: Sphinx Filelist.bin descriptor
 //   Author: Swyter
-// Revision: 2016-02-28, 2016-03-23
-//  Purpose: For the GameCube (PAL/NTSC) and PlayStation 2 (PAL) versions
+// Revision: 2016-02-28, 2016-03-23, 2016-06-27
+//  Purpose: For the GameCube (PAL/NTSC), XBOX and PlayStation 2 (PAL) versions.
+//           Supports the two Filelist.bin variants publicly known to date.
+//           Should work with anything you throw at it.
 //--------------------------------------
 
 /* gamecube is big endian,
    ps2 is little endian */
-if (ReadByte() == 0x05) LittleEndian(); else BigEndian();
+if (ReadByte() & (0x4 | 0x5)) LittleEndian(); else BigEndian();
 
-uint magic;                     /* Always 5 (?) */
-uint total_size <format=hex>;   /* Total file size */
-uint list_item_count;           /* Number of files listed in here */
-uint16 unk_a <format=hex>;      /* 0x0001 and 0x0000 respectively, no idea, seems like a flag or counter */
-uint16 unk_b <format=hex>;
-uint next_section <format=hex>; /* + 10h (address relative to this field).
-                                   Points to an array of null-terminated relative pointers of `list_item_count` size (each of them 4 bytes long)
-                                   that goes right after the listed items. This array stores filenames and shares index with its list item, so you can
-                                   retrieve the filename of every entry by getting its index and doing ptr_offset + ptr_content */
+
+  /* retail is version 5,
+     standalone demo is version 4 */
+  uint magic;
+  uint total_size <format=hex>;
+  uint list_item_count;
+
+if (magic == 0x5)
+{
+  /* 1 and 0, respectively */
+  uint16 unk_a <format=hex>;
+  uint16 unk_b <format=hex>;
+}
+
+  /* points to the strings pointers array */
+  uint next_section <format=hex>; // + offset (address relative to this field)
 
 struct
 {
+ /* the standalone version only supports a single offset per file */
+ if (magic == 0x4)
+ {
+    uint loc_addr <format=hex>;
+ }
     uint len <format=hex>;
     uint hash <format=hex>;
     uint ver;
     uint unk_flags <format=hex>;
 
-    /* seems like the same file can be stored in multiple places (up to 5!) along the blob
-       file, probably to reduce disc seek times? so far only used in the PS2 version */
-
+ /* the retail game supports multiple offsets for the
+    same file, even within the same container */
+ if (magic == 0x5)
+ {
     uint offset_count;
-
     struct
     {
         uint loc_addr <format=hex>;
         uint loc_file;
     }offsets[offset_count] <optimize=false>;
+ }
 
 }list_item[list_item_count] <optimize=false>;
 
-uint string_pointer_array[list_item_count];  // 2424/4 = 606
-// total size of the string blob => 23724 bytes
-// maximum size of incremental numbers => 23669
+/* the string pointer array always appears right
+   after the last entry, so this shouldn't be necessary in theory */
+FSeek(startof(next_section) + next_section);
 
-// addr 23669 points to the last string minus 4 (an uint as big as the field itself)
-// each pointer is relative to the string blob start minus its own size
-// str_base + (str_ptr - 4)
-//    19412 + (23644   - 4) $ 43048 [A828h] (nope)
-//    19412 + (23669   - 4) = 43077 [A845h]
+uint string_pointer_array[list_item_count];
 
-
-// wait, it's simpler than that, measuring from the right location
-// back it gives us the original pointer position, like this:
-
-// cur_offset + contents = string_start
-//      16988 +     2424 = 19412 [4BD4h] OK // 1st array entry
-//      19404 +    23644 = 43048 [A828h] OK // last - 1
-//      19408 +    23669 = 43077 [A845h] OK // last
-
-
-//string str; // at 0x4BD4 // size: 2Ch
-//string strb; // at 0x4BD4 // size: 2Ch
 struct
 {
     string ss <optimize=false>;
 }ss[list_item_count] <optimize=false>;
-// 2464 - 2424 >>> Result = 40 [28h]
-// 2495 - 2464 >>> Result = 31 [1Fh]
+
+/* --- */
 
 local uint i;
 local uint j;
 local uint filename_addr;
 local string filename_stri;
 
+/* make a pretty listing in the Output window */
 for (i=0; i<list_item_count; i++)
 {
     filename_addr = startof(string_pointer_array[i]) + string_pointer_array[i];
     filename_stri = ReadString(filename_addr);
 
-    Printf("\nFile:    %s (string at %#x)    \n Len:    %u    \n Ver:    %u    \nFlag:    %#x    \nHash:    %#x   \n Loc:   %9x:%03u",
+    Printf("\n" +
+           "File:    %s (string at %#x)    \n" +
+           " Len:    %u    \n" +
+           " Ver:    %u    \n" +
+           "Flag:    %#x   \n" +
+           "Hash:    %#x   \n" +
+           " Loc:   %9x:",
         filename_stri,
         filename_addr,
+
         list_item[i].len,
         list_item[i].ver,
         list_item[i].unk_flags,
         list_item[i].hash,
-        list_item[i].offsets[0].loc_addr,
-        list_item[i].offsets[0].loc_file
+
+        (magic == 0x5 ?
+         list_item[i].offsets[0].loc_addr :
+         list_item[i].loc_addr
+        )
     );
 
-    /* if there are additional offsets in other places
-       show them too, comma delimited */
-    for (j=1; j<list_item[i].offset_count; j++)
-     Printf(", %9x:%03u",
-        list_item[i].offsets[j].loc_addr,
-        list_item[i].offsets[j].loc_file);
 
+ if (magic == 0x5)
+ {
+    /* retail supports up to 999 data containers, starting by Filelist.000,
+       only two containers have appeared in the wild, though */
+    Printf("%03u", list_item[i].offsets[0].loc_file);
+
+    /* the file of an entry can be stored in various containers and duplicated
+       in various offsets per file to improve DVD seek times */
+    for (j=1; j<list_item[i].offset_count; j++)
+        Printf(", %9x:%03u",
+            list_item[i].offsets[j].loc_addr,
+            list_item[i].offsets[j].loc_file
+        );
+ }
+ else
+ {
+    /* the demo version only has a single
+       data container with .dat extension */
+    Printf("%s", "DAT");
+ }
 
     Printf("\n-- (%d) \n", i);
 }
-
-// 524Ch + 10h = 525ch
-
-// 525ch - 524Ch
-// >>> Result = 16 [10h]
-
-// 48 09 00 00
-
-// 525ch + 2376
-// >>> Result = 23460 [5BA4h]
-
-
-// 21060 bytes / 28
