@@ -1,7 +1,7 @@
 /* Structs of the filelist.bin file were reverse engineered with 010 editor from
    the contents stored in filelist.txt, also included in the GCN disk.
 
-   Should work with various retail versions and platforms of Eurocom's EngineX with little work */
+   Should work with various demo versions and platforms of Eurocom's EngineX with little work */
 
 #include <unistd.h>
 #include <stdint.h>
@@ -25,38 +25,29 @@ struct header
     uint32_t total_size;
     uint32_t list_item_count;
 
-    /* 0x0001 and 0x0000 respectively, no idea, seems like a flag or counter */
-    uint16_t unk_a;
-    uint16_t unk_b;
-
     /* address relative to this field */
     uint32_t next_section;
 };
 
 struct list_item
 {
+    uint32_t loc_addr;
     uint32_t len;
     uint32_t hash;
     uint32_t ver;
     uint32_t unk_flags;
-    uint32_t offset_count;
-    struct
-    {
-        uint32_t loc_addr;
-        uint32_t loc_file;
-    } offsets[1];
 };
 
 bool is_le = false;
 #define ntohl(val) (!is_le ? be32toh(val) : le32toh(val))
 
-void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t loc_file, uint32_t len);
+void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t len);
 
 void main(int argc, char *argv[])
 {
     puts(
         "\n"
-        "  SPHINX AND THE CURSED MUMMY «FILELIST» RETAIL EXTRACTOR       \n"
+        "  SPHINX AND THE CURSED MUMMY «FILELIST» DEMO EXTRACTOR         \n"
         "  --------------------------------------------------------------\n"
         "  (C) 2016-02-28 Created by Swyter <swyterzone+sphinx@gmail.com>\n"
         "\n"
@@ -66,7 +57,7 @@ void main(int argc, char *argv[])
     if (argc == 2) goto open;
 
     printf(
-        "  This program extracts game files from filebin.0XX containers \n"
+        "  This program extracts game files from filebin.DAT containers \n"
         "  by reading the same filelist.bin descriptor used by the game.\n"
         "\n"
         "  > USAGE: %s <filelist.bin>\n\n", argv[0]
@@ -113,9 +104,10 @@ extract:
         return;
     }
 
+
     struct header *head = (struct header *)map;
 
-    /* GameCube files are stored in big endian/network order, and uses a PowerPC processor,
+    /* GameCube files are stored in big endian/network order due to the PowerPC processor,
        PlayStation 2 files are little endian, mipsel arch, like most Intel computers */
 
     if (*(uint8_t *)&head->magic & (0x4 | 0x5))
@@ -125,13 +117,13 @@ extract:
 
     if (ntohl(head->magic) == 0x4)
     {
-        puts("  [i] Detected as version 4, the earlier format used in pre-retail demos!\n"
-             "      This program only unpacks retail containers, use the demo extractor for this file.");
-        return;
+        puts("  [i] Detected as version 4, the earlier format used in pre-retail demos!");
     }
     else if (ntohl(head->magic) == 0x5)
     {
-        puts("  [i] Detected as version 5, the format used in retail containers!\n");
+        puts("  [i] Detected as version 5, the format used in retail containers!\n"
+             "      This program only unpacks demo containers, use the normal extractor for this file.");
+        return;
     }
 
     printf("%p %p %x %x %zx--\n\n", map, head, ntohl(head->magic), ntohl(head->total_size), size);
@@ -151,24 +143,22 @@ extract:
         (size_t) item < ((size_t) &head->next_section + ntohl(head->next_section));
 
         /* variable-sized makes everything harder, this basically computes `static part` + `dynamic part * entries` */
-        item = (struct list_item *)((size_t) item + (offsetof(struct list_item, offsets)) +
-                                                    (sizeof(item->offsets) * ntohl(item->offset_count))), string_pointer++
+        item++, string_pointer++
     )
     {
 
         char *filepath = (char *)((size_t) string_pointer + ntohl(*string_pointer));
 
         printf(
-            "%-50s : Len %10u : Ver %4u : Hash %#010x : Loc %11x:%03u\n",
+            "%-50s : Len %10u : Ver %4u : Hash %#010x : Loc %11x:DAT\n",
             filepath,
             ntohl(item->len),
             ntohl(item->ver),
             ntohl(item->hash),
-            ntohl(item->offsets[0].loc_addr),
-            ntohl(item->offsets[0].loc_file)
+            ntohl(item->loc_addr)
         );
 
-        extract_to(argv[1], filepath, ntohl(item->offsets[0].loc_addr), ntohl(item->offsets[0].loc_file), ntohl(item->len));
+        extract_to(argv[1], filepath, ntohl(item->loc_addr), ntohl(item->len));
 
         //return;
     }
@@ -177,7 +167,7 @@ extract:
     close(fd);
 }
 
-void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t loc_file, uint32_t len)
+void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t len)
 {
     char containerpath[255] = {0};
     char extractedpath[255] = {0};
@@ -189,10 +179,10 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
     char *dot = strrchr(containerpath, '.') + 1;
 
     /* does it fit? or will overflow? */
-    if ((dot - containerpath) + sizeof("000") > sizeof(containerpath))
+    if ((dot - containerpath) + sizeof("DAT") > sizeof(containerpath))
         return;
 
-    snprintf(dot, sizeof("000"), "%03u", loc_file);
+    snprintf(dot, sizeof("DAT"), "%s", "DAT");
 
 
     char *slash = strrchr(extractedpath, '\\');
