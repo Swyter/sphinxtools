@@ -45,6 +45,13 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t le
 
 void main(int argc, char *argv[])
 {
+
+#ifdef _WIN32
+    /* Windows doesn't like Unicode by default */
+    #include <windows.h>
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+
     puts(
         "\n"
         "  SPHINX AND THE CURSED MUMMY «FILELIST» DEMO EXTRACTOR         \n"
@@ -176,6 +183,11 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t le
     strncpy(containerpath, descriptor, sizeof(containerpath));
     strncpy(extractedpath, filename,   sizeof(extractedpath));
 
+#ifdef _WIN32
+    /* Windows doesn't like : in folder names, change that */
+    extractedpath[1] = ';';
+#endif
+
     char *dot = strrchr(containerpath, '.') + 1;
 
     /* does it fit? or will overflow? */
@@ -193,7 +205,11 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t le
        snprintf(&extractedfldr[0] + strlen(extractedfldr), sizeof(extractedfldr), "/%s", token);
 
        if (token < slash)
+#ifdef _WIN32
+         mkdir(extractedfldr);
+#else
          mkdir(extractedfldr, 0744);
+#endif
 
        //printf(" «%s» (%s)", token, extractedfldr);
     } while((token = strtok(NULL, "\\")));
