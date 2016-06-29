@@ -1,7 +1,8 @@
 # sphinxtools
+
+> _You can download the latest precompiled version of the tools [from here](https://github.com/Swyter/sphinxtools/releases)._
+
 Unpackers and modding tools for the GameCube version of the «_Sphinx and the Cursed Mummy_» game.
-
-
 ## Background
 
 The game files are all packed inside an uncompressed container file called `Filelist.000`. The game engine actually reads a small binary descriptor file called `Filelist.bin`,
