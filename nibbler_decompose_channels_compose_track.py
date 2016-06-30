@@ -1,8 +1,14 @@
+import sys
+
+name = sys.argv[1]
+hash = sys.argv[2]
+code = "%06x" % (int(hash, 16) & 0xFFFFFF)
 
 r = open("/tmp/pychan_r.ima", "wb+")
 l = open("/tmp/pychan_l.ima", "wb+")
 
-f = open("/home/swyter/github/sphinxtools/x:/sphinx/binary/_bin_gc/music/hce00005.sfx", "rb")
+f = open("/home/swyter/github/sphinxtools/x:/sphinx/binary/_bin_gc/music/hc" + code + ".sfx", "rb")
+#f = open("/home/swyter/github/sphinxtools/x:/sphinx/binary/_bin_gc/music/hce00005.sfx", "rb")
 #f = open("/home/swyter/github/sphinxtools/x:/sphinx/binary/_bin_gc/_eng/hc000000.sfx", "rb")
 #f = open("/tmp/2b.ima", "rb")
 f.seek(0x1000);
@@ -24,10 +30,15 @@ finally:
     l.close()
     r.close()
 
+
+count = int(open("/tmp/_counter", "r").read()) or 1
+
 import os
 
 os.system('sox -t ima -e ima-adpcm -c 1 -r 32000 /tmp/pychan_r.ima -b 4 /tmp/pyooout_r.wav');
 os.system('sox -t ima -e ima-adpcm -c 1 -r 32000 /tmp/pychan_l.ima -b 4 /tmp/pyooout_l.wav');
 
-os.system('ffmpeg -i /tmp/pyooout_l.wav -i /tmp/pyooout_r.wav -filter_complex "[0:a][1:a]amerge=inputs=2[aout]" -map "[aout]" pyoutput_sound.m4a')
+os.system('ffmpeg -i /tmp/pyooout_l.wav -i /tmp/pyooout_r.wav -filter_complex "[0:a][1:a]amerge=inputs=2[aout]" -map "[aout]" "GCN-soundtrack/(%02i) %s [%s].m4a"' % (count, name, hash))
+
+os.system('echo %i > /tmp/_counter' % (count + 1))
 
