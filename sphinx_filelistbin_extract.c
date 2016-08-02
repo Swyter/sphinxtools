@@ -19,6 +19,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+/* © 2016 Created by Swyter -- MIT licensed. Have fun! */
+
 struct header
 {
     uint32_t magic;
@@ -117,7 +119,7 @@ extract:
 
     struct header *head = (struct header *)map;
 
-    /* GameCube files are stored in big endian/network order, and uses a PowerPC processor,
+    /* GameCube files are stored in big endian/network order, due to the PowerPC processor,
        PlayStation 2 files are little endian, mipsel arch, like most Intel computers */
 
     if (*(uint8_t *)&head->magic & (0x4 | 0x5))
