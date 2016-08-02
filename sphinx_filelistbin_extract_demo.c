@@ -64,7 +64,7 @@ void main(int argc, char *argv[])
     if (argc == 2) goto open;
 
     printf(
-        "  This program extracts game files from filebin.DAT containers \n"
+        "  This program extracts game files from filebin.0XX containers \n"
         "  by reading the same filelist.bin descriptor used by the game.\n"
         "\n"
         "  > USAGE: %s <filelist.bin>\n\n", argv[0]
@@ -77,29 +77,21 @@ open:
         "  [-] Opening descriptor...\n"
     );
 
-    if (access(argv[1], R_OK) != -1) goto extract;
+    int fd = open(argv[1], O_RDONLY); struct stat s = {0};
+
+    /* does the file exist? can we open it? is it a regular file? */
+    if (fd >= 0 && fstat(fd, &s) >= 0) goto extract;
 
     printf(
-        "  [x] Couldn't open «%s»\n\n", argv[1]
+        "  [x] Couldn't open «%s»: %s\n\n", argv[1], strerror(errno)
     );
 
     return;
 
 extract:
     puts(
-        "  [-] Extracting files...\n"
+        "  [-] Mapping descriptor into memory...\n"
     );
-
-    int fd = open(argv[1], O_RDONLY);
-
-    if (fd < 0)
-    {
-        printf("\nopen failed: %s\n", strerror(errno));
-        return;
-    }
-
-    struct stat s;
-    fstat(fd, &s);
 
     size_t size = s.st_size;
 
@@ -107,14 +99,16 @@ extract:
 
     if (map == MAP_FAILED)
     {
-        printf("\nmmap failed: %s\n", strerror(errno));
-        return;
+        printf("  [x] Couldn't mmap «%s»: %s\n\n", argv[1], strerror(errno)); return;
     }
 
+    puts(
+        "  [-] Extracting files...\n"
+    );
 
     struct header *head = (struct header *)map;
 
-    /* GameCube files are stored in big endian/network order due to the PowerPC processor,
+    /* GameCube files are stored in big endian/network order, and uses a PowerPC processor,
        PlayStation 2 files are little endian, mipsel arch, like most Intel computers */
 
     if (*(uint8_t *)&head->magic & (0x4 | 0x5))
@@ -129,7 +123,7 @@ extract:
     else if (ntohl(head->magic) == 0x5)
     {
         puts("  [i] Detected as version 5, the format used in retail containers!\n"
-             "      This program only unpacks demo containers, use the normal extractor for this file.");
+             "      This program only unpacks demo containers, use the normal extractor for this file.\n");
         return;
     }
 
@@ -137,7 +131,7 @@ extract:
 
     if (ntohl(head->total_size) != size)
     {
-        puts("  [x] Invalid total size field, probably a corrupted, unsupported or invalid file!");
+        puts("  [x] Invalid total size field, probably a corrupted, unsupported or invalid file!\n");
         return;
     }
 
@@ -149,7 +143,10 @@ extract:
         /* stop once we go past the next section (which is the string pointer block), not foolproof but works */
         (size_t) item < ((size_t) &head->next_section + ntohl(head->next_section));
 
-        /* variable-sized makes everything harder, this basically computes `static part` + `dynamic part * entries` */
+        /* variable-sized makes everything harder, the retail version
+           basically computes `static part` + `dynamic part * entries`
+
+           [here in the demo format variant we can just ++ the static size pointers] */
         item++, string_pointer++
     )
     {
@@ -180,8 +177,8 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t le
     char extractedpath[255] = {0};
     char extractedfldr[255] = ".";
 
-    strncpy(containerpath, descriptor, sizeof(containerpath));
-    strncpy(extractedpath, filename,   sizeof(extractedpath));
+    strncpy(containerpath, descriptor, (sizeof(containerpath) - 1));
+    strncpy(extractedpath, filename,   (sizeof(extractedpath) - 1));
 
 #ifdef _WIN32
     /* Windows doesn't like : in folder names, change that */
@@ -191,7 +188,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t le
     char *dot = strrchr(containerpath, '.') + 1;
 
     /* does it fit? or will overflow? */
-    if ((dot - containerpath) + sizeof("DAT") > sizeof(containerpath))
+    if ((dot - containerpath) + sizeof("DAT") > (sizeof(containerpath) - 1))
         return;
 
     snprintf(dot, sizeof("DAT"), "%s", "DAT");
@@ -202,7 +199,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t le
 
     do
     {
-       snprintf(&extractedfldr[0] + strlen(extractedfldr), sizeof(extractedfldr), "/%s", token);
+       snprintf(&extractedfldr[0] + strlen(extractedfldr), (sizeof(extractedfldr) - 1), "/%s", token);
 
        if (token < slash)
 #ifdef _WIN32
@@ -219,7 +216,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t le
 
     if (fd_container < 0 || fd_extracted < 0)
     {
-        printf("\nopen failed: %s\n", strerror(errno)); goto close;
+        printf("  [x] Couldn't open «%s» or «%s»: %s\n\n", containerpath, extractedfldr, strerror(errno)); goto close;
     }
 
     struct stat s;
@@ -237,7 +234,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t le
 
     if (container_map == MAP_FAILED || extracted_map == MAP_FAILED)
     {
-        printf("\nmmap failed: %s\n", strerror(errno)); goto cleanup;
+        printf("  [x] Couldn't mmap «%s» or «%s»: %s\n\n", containerpath, extractedfldr, strerror(errno)); goto cleanup;
     }
 
     //printf("\n %x %x %x %u\n", extracted_map, container_map, loc_addr, len);

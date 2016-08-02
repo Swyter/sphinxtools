@@ -86,29 +86,21 @@ open:
         "  [-] Opening descriptor...\n"
     );
 
-    if (access(argv[1], R_OK) != -1) goto extract;
+    int fd = open(argv[1], O_RDONLY); struct stat s = {0};
+
+    /* does the file exist? can we open it? is it a regular file? */
+    if (fd >= 0 && fstat(fd, &s) >= 0) goto extract;
 
     printf(
-        "  [x] Couldn't open «%s»\n\n", argv[1]
+        "  [x] Couldn't open «%s»: %s\n\n", argv[1], strerror(errno)
     );
 
     return;
 
 extract:
     puts(
-        "  [-] Extracting files...\n"
+        "  [-] Mapping descriptor into memory...\n"
     );
-
-    int fd = open(argv[1], O_RDONLY);
-
-    if (fd < 0)
-    {
-        printf("\nopen failed: %s\n", strerror(errno));
-        return;
-    }
-
-    struct stat s;
-    fstat(fd, &s);
 
     size_t size = s.st_size;
 
@@ -116,9 +108,12 @@ extract:
 
     if (map == MAP_FAILED)
     {
-        printf("\nmmap failed: %s\n", strerror(errno));
-        return;
+        printf("  [x] Couldn't mmap «%s»: %s\n\n", argv[1], strerror(errno)); return;
     }
+
+    puts(
+        "  [-] Extracting files...\n"
+    );
 
     struct header *head = (struct header *)map;
 
@@ -133,7 +128,7 @@ extract:
     if (ntohl(head->magic) == 0x4)
     {
         puts("  [i] Detected as version 4, the earlier format used in pre-retail demos!\n"
-             "      This program only unpacks retail containers, use the demo extractor for this file.");
+             "      This program only unpacks retail containers, use the demo extractor for this file.\n");
         return;
     }
     else if (ntohl(head->magic) == 0x5)
@@ -145,7 +140,8 @@ extract:
 
     if (ntohl(head->total_size) != size)
     {
-        puts("  [x] Invalid total size field, probably a corrupted, unsupported or invalid file!");
+        puts("  [x] Invalid total size field. Probably a corrupted, unsupported\n"
+             "      or incorrect «Filelist.bin» descriptor! Go figure! :(\n");
         return;
     }
 
@@ -190,8 +186,8 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
     char extractedpath[255] = {0};
     char extractedfldr[255] = ".";
 
-    strncpy(containerpath, descriptor, sizeof(containerpath));
-    strncpy(extractedpath, filename,   sizeof(extractedpath));
+    strncpy(containerpath, descriptor, (sizeof(containerpath) - 1));
+    strncpy(extractedpath, filename,   (sizeof(extractedpath) - 1));
 
 #ifdef _WIN32
     /* Windows doesn't like : in folder names, change that */
@@ -201,7 +197,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
     char *dot = strrchr(containerpath, '.') + 1;
 
     /* does it fit? or will overflow? */
-    if ((dot - containerpath) + sizeof("000") > sizeof(containerpath))
+    if ((dot - containerpath) + sizeof("000") > (sizeof(containerpath) - 1))
         return;
 
     snprintf(dot, sizeof("000"), "%03u", loc_file);
@@ -212,7 +208,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
 
     do
     {
-       snprintf(&extractedfldr[0] + strlen(extractedfldr), sizeof(extractedfldr), "/%s", token);
+       snprintf(&extractedfldr[0] + strlen(extractedfldr), (sizeof(extractedfldr) - 1), "/%s", token);
 
        if (token < slash)
 #ifdef _WIN32
@@ -229,7 +225,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
 
     if (fd_container < 0 || fd_extracted < 0)
     {
-        printf("\nopen failed: %s\n", strerror(errno)); goto close;
+        printf("  [x] Couldn't open «%s» or «%s»: %s\n\n", containerpath, extractedfldr, strerror(errno)); goto close;
     }
 
     struct stat s;
@@ -247,7 +243,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
 
     if (container_map == MAP_FAILED || extracted_map == MAP_FAILED)
     {
-        printf("\nmmap failed: %s\n", strerror(errno)); goto cleanup;
+        printf("  [x] Couldn't mmap «%s» or «%s»: %s\n\n", containerpath, extractedfldr, strerror(errno)); goto cleanup;
     }
 
     //printf("\n %x %x %x %u\n", extracted_map, container_map, loc_addr, len);
