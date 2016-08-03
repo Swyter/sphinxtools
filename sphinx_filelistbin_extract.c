@@ -138,7 +138,7 @@ extract:
         puts("  [i] Detected as version 5, the format used in retail containers!\n");
     }
 
-    printf("%p %p %x %x %zx--\n\n", map, head, ntohl(head->magic), ntohl(head->total_size), size);
+    printf("  [debug] %p %p %x %x %zx--\n\n", map, head, ntohl(head->magic), ntohl(head->total_size), size);
 
     if (ntohl(head->total_size) != size)
     {
@@ -219,7 +219,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
          mkdir(extractedfldr, 0744);
 #endif
 
-       //printf(" «%s» (%s)", token, extractedfldr);
+       //printf("  [debug] «%s» (%s)", token, extractedfldr);
     } while((token = strtok(NULL, "\\")));
 
     int fd_container = open(containerpath, O_RDONLY);
@@ -238,7 +238,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
 
     /* the file we have just created is still empty, zero-fill with the needed length so
        that we have something to work with while mmap'ing, we don't want bus errors */
-    ftruncate (fd_extracted, extracted_size);
+    ftruncate(fd_extracted, extracted_size);
 
     void *container_map = mmap(0, container_size, PROT_READ,  MAP_PRIVATE, fd_container, 0);
     char *extracted_map = mmap(0, extracted_size, PROT_WRITE, MAP_SHARED,  fd_extracted, 0);
@@ -248,7 +248,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
         printf("  [x] Couldn't mmap «%s» or «%s»: %s\n\n", containerpath, extractedfldr, strerror(errno)); goto cleanup;
     }
 
-    //printf("\n %x %x %x %u\n", extracted_map, container_map, loc_addr, len);
+    //printf("\n  [debug] %x %x %x %u\n", extracted_map, container_map, loc_addr, len);
 
     memcpy(extracted_map, container_map + loc_addr, len);
 
@@ -257,6 +257,6 @@ cleanup:
     munmap(extracted_map, extracted_size);
 
 close:
-    close(fd_container);
-    close(fd_extracted);
+    if (fd_container >= 0) close(fd_container);
+    if (fd_extracted >= 0) close(fd_extracted);
 }
