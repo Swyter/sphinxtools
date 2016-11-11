@@ -156,12 +156,13 @@ extract:
         char *filepath = (char *)((size_t) string_pointer + ntohl(*string_pointer));
 
         printf(
-            "%-50s : Len %10u : Ver %4u : Hash %#010x : Loc %11x:DAT\n",
+            "%-50s : Len %10u : Ver %4u : Hash %#010x : Loc %11x:DAT  (%x)\n",
             filepath,
             ntohl(item->len),
             ntohl(item->ver),
             ntohl(item->hash),
-            ntohl(item->loc_addr)
+            ntohl(item->loc_addr),
+            ntohl(item->unk_flags)
         );
 
         extract_to(argv[1], filepath, ntohl(item->loc_addr), ntohl(item->len));
@@ -214,9 +215,9 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t le
     } while((token = strtok(NULL, "\\")));
 
     int fd_container = open(containerpath, O_RDONLY);
-    int fd_extracted = open(extractedfldr, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+    //int fd_extracted = open(extractedfldr, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
-    if (fd_container < 0 || fd_extracted < 0)
+    if (fd_container < 0 )//|| fd_extracted < 0)
     {
         printf("  [x] Couldn't open «%s» or «%s»: %s\n\n", containerpath, extractedfldr, strerror(errno)); goto close;
     }
@@ -225,29 +226,41 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t le
     fstat(fd_container, &s);
 
     size_t container_size = s.st_size;
-    size_t extracted_size = len;
+    //size_t extracted_size = len;
 
     /* the file we have just created is still empty, zero-fill with the needed length so
        that we have something to work with while mmap'ing, we don't want bus errors */
-    ftruncate(fd_extracted, extracted_size);
+    //ftruncate(fd_extracted, extracted_size);
 
     void *container_map = mmap(0, container_size, PROT_READ,  MAP_PRIVATE, fd_container, 0);
-    char *extracted_map = mmap(0, extracted_size, PROT_WRITE, MAP_SHARED,  fd_extracted, 0);
+    //char *extracted_map = mmap(0, extracted_size, PROT_WRITE, MAP_SHARED,  fd_extracted, 0);
 
-    if (container_map == MAP_FAILED || extracted_map == MAP_FAILED)
+    if (container_map == MAP_FAILED)// || extracted_map == MAP_FAILED)
     {
         printf("  [x] Couldn't mmap «%s» or «%s»: %s\n\n", containerpath, extractedfldr, strerror(errno)); goto cleanup;
     }
 
     //printf("\n  [debug] %x %x %x %u\n", extracted_map, container_map, loc_addr, len);
 
-    memcpy(extracted_map, container_map + loc_addr, len);
+
+
+    printf("\n  [debug] %x %x len: %x actual hash: %x actual len: %x sector aligned: %x next: %x \n\n\n", /*extracted_map,*/ container_map, loc_addr, len,
+                                                                                *(uint32_t*)(container_map + loc_addr + 0x04),
+                                                                                *(uint32_t*)(container_map + loc_addr + 0x14),
+                                                                              ((*(uint32_t*)(container_map + loc_addr + 0x14)) & ~0x7ff) + 0x800,
+                                                                loc_addr +    ((*(uint32_t*)(container_map + loc_addr + 0x14)) & ~0x7ff) + 0x800);
+
+   if (len != *(uint32_t*)(container_map + loc_addr + 0x14))
+      printf("[unmatched size] !! %x vs %x  (diff of %x)\n\n\n\n", len, *(uint32_t*)(container_map + loc_addr + 0x14), *(uint32_t*)(container_map + loc_addr + 0x14) - len);
+
+
+    //memcpy(extracted_map, container_map + loc_addr, len);
 
 cleanup:
     munmap(container_map, container_size);
-    munmap(extracted_map, extracted_size);
+    //munmap(extracted_map, extracted_size);
 
 close:
     if (fd_container >= 0) close(fd_container);
-    if (fd_extracted >= 0) close(fd_extracted);
+    //if (fd_extracted >= 0) close(fd_extracted);
 }

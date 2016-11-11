@@ -12,15 +12,77 @@ if (ReadByte() == 'M') LittleEndian(); else BigEndian();
 
 struct
 {
-    char xx_magic[4];  // GEOM
-    uint xx_hash_ref <format=hex>;   // thing
-    uint count;   // Number of items
-    uint unk_const <format=hex>; // Flag?
-    uint unk <format=hex>;
-    uint a <format=hex>;
-    uint total_size_unc <format=hex>; // ???
-    uint total_size <format=hex>; // confirmed
-    uint zero[5];
-    uint unk <format=hex>;
-
+    char xx_magic[4];                 // GEOM
+    uint xx_hash_ref   <format=hex>;  // individual resource-locator thing
+    uint version;                     // as it appears in the Filelist descriptor
+    uint flags         <format=hex>;  // as it appears in the Filelist descriptor
+    uint unk_base_addr <format=hex>;  // 0x3EA8XXXX, physical DLL-like base address for relocations?
+    uint total_size    <format=hex>;  // the full size of the actual file
+    uint partl_size    <format=hex>;  // the partial size with just the initial chunk (as it appears in Filelist)
+    uint zero[6];
+    uint total_size_b <format=hex>;
+    uint total_size_plus <format=hex>; // total memory to allocate?
+    uint zero_b[6];
 } head;
+//mc_sphin.edb
+uint undisclosed_crap[0x70/4];
+
+struct a
+{
+ uint thing <format=hex>;
+ short thing_a <format=hex>;
+ short count; // <format=hex>;
+ uint thingb <format=hex>;
+ uint thingc <format=hex>;
+ uint thingd <format=hex>;
+}; //entry[385];
+
+struct b 
+{
+ uint thing <format=hex>;
+ short thing_a <format=hex>;
+ short count; // <format=hex>;
+ uint thingb <format=hex>;
+ uint thingc <format=hex>;
+ //uint thingd <format=hex>;
+}; //entry_b[223];
+
+byte thing[0xf40];
+
+struct
+{
+    uint count;
+
+    struct
+    {
+        uint hashcode_ref <format=hex>;   // hashcodes.h --> #define HT_Text_HASHCODE_BASE 0x43000000
+        uint offset_str <format=hex>;    // relative offset to the start of the multibyte, zero-ended string,
+        uint offset_b <format=hex>;       // next string?
+        uint lots_of_effs <format=hex>;   // 0xFFFFFFFF (??)
+    } spreadsheet_index[count];
+
+} spreadsheet_block;
+
+
+/*
+
+struct
+{
+    short a;
+    short b;
+    
+    uint thong;
+} lut[50];
+* /
+//byte a[2];
+//*
+//float tmp[60000];
+
+local int i, j;/*
+for (i=3;i+4<sizeof(tmp);i+=3)
+{
+  Printf("v %f %f %f\n# %#x\n", tmp[i-2],tmp[i-1],tmp[i], startof(tmp[i-2]));
+}
+* /
+for (i=GetSelStart(), j=i+GetSelSize(); i<j; i+=sizeof(float)*3)
+  Printf("v %f %f %f\n# %#x\n", ReadFloat(i), ReadFloat(i+1), ReadFloat(i+2), i);
