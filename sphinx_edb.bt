@@ -22,10 +22,38 @@ struct
     uint zero[6];
     uint total_size_b <format=hex>;
     uint total_size_plus <format=hex>; // total memory to allocate?
-    uint zero_b[6];
+    uint zero_b[8];
+
+    byte filler[100];
+
+    struct{
+        uint one;
+        uint hashcode <format=hex>;
+        short zero;
+        short count;
+        uint thing <format=hex>;
+        uint crap;
+    } hashentries[8];
+
+    struct{
+        uint offset <format=hex>;
+        uint offset_b <format=hex>;
+        uint zero;
+        short count;
+        short onezeroeight <format=hex>;
+        uint offset_c <format=hex>;
+    } item[7];
 } head;
 //mc_sphin.edb
-uint undisclosed_crap[0x70/4];
+//uint undisclosed_crap[0x70/4];
+
+
+struct
+{
+    uint one;
+    uint important_thing;
+    uint index_count;
+} jumper[7];
 
 struct a
 {
@@ -35,7 +63,7 @@ struct a
  uint thingb <format=hex>;
  uint thingc <format=hex>;
  uint thingd <format=hex>;
-}; //entry[385];
+}entry[385];
 
 struct b 
 {
@@ -45,23 +73,30 @@ struct b
  uint thingb <format=hex>;
  uint thingc <format=hex>;
  //uint thingd <format=hex>;
-}; //entry_b[223];
+}entry_b[223];
+
+struct
+{
+ uint spreadsheet_number;
+ uint spreadsheetabs_offset <format=hex>;
+ uint zeros[2];
+}spreadsheet_listing[7];
 
 byte thing[0xf40];
 
-struct
+struct spreadsheet_block
 {
     uint count;
 
     struct
     {
         uint hashcode_ref <format=hex>;   // hashcodes.h --> #define HT_Text_HASHCODE_BASE 0x43000000
-        uint offset_str <format=hex>;    // relative offset to the start of the multibyte, zero-ended string,
-        uint offset_b <format=hex>;       // next string?
+        uint offset_str   <format=hex>;   // relative offset to the start of the multibyte, zero-ended string,
+        uint offset_nxt   <format=hex>;   // next string?
         uint lots_of_effs <format=hex>;   // 0xFFFFFFFF (??)
     } spreadsheet_index[count];
 
-} spreadsheet_block;
+};// spreadsheet_block;
 
 
 /*
