@@ -40,6 +40,17 @@ struct list_item
     uint32_t unk_flags;
 };
 
+struct edb_header
+{
+    uint32_t magic;         /* 'GEOM', flipped by endianess */
+    uint32_t hash_ref;      /* individual resource-locator thing */
+    uint32_t version;       /* as it appears in the Filelist descriptor */
+    uint32_t flags;         /* as it appears in the Filelist descriptor */
+    uint32_t unk_base_addr; /* 0x3EA8XXXX, physical DLL-like base address for relocations? */
+    uint32_t total_len;     /* the full size of the actual file */
+    uint32_t partl_len;     /* the partial size with just the initial chunk (as it appears in Filelist) */
+};
+
 bool is_le = false;
 #define ntohl(val) (!is_le ? be32toh(val) : le32toh(val))
 
@@ -215,7 +226,7 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t le
     } while((token = strtok(NULL, "\\")));
 
     int fd_container = open(containerpath, O_RDONLY);
-    //int fd_extracted = open(extractedfldr, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+    int fd_extracted = open(extractedfldr, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
     if (fd_container < 0 )//|| fd_extracted < 0)
     {
@@ -226,41 +237,49 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t le
     fstat(fd_container, &s);
 
     size_t container_size = s.st_size;
-    //size_t extracted_size = len;
+    size_t extracted_size = len;
 
     /* the file we have just created is still empty, zero-fill with the needed length so
        that we have something to work with while mmap'ing, we don't want bus errors */
-    //ftruncate(fd_extracted, extracted_size);
+    ftruncate(fd_extracted, extracted_size);
 
     void *container_map = mmap(0, container_size, PROT_READ,  MAP_PRIVATE, fd_container, 0);
-    //char *extracted_map = mmap(0, extracted_size, PROT_WRITE, MAP_SHARED,  fd_extracted, 0);
+    char *extracted_map = mmap(0, extracted_size, PROT_WRITE, MAP_SHARED,  fd_extracted, 0);
 
-    if (container_map == MAP_FAILED)// || extracted_map == MAP_FAILED)
+    if (container_map == MAP_FAILED || extracted_map == MAP_FAILED)
     {
         printf("  [x] Couldn't mmap «%s» or «%s»: %s\n\n", containerpath, extractedfldr, strerror(errno)); goto cleanup;
     }
 
-    //printf("\n  [debug] %x %x %x %u\n", extracted_map, container_map, loc_addr, len);
+
+    /* workaround the partial EDB lengths as reported by Filelist descriptors by finding the actual size in
+       the target file itself and using that for the dump, don't use only the first chunk's length.
+
+       there's some kind of subsystem that conditionally loads sub-sections if the file is too big. */
+
+    struct edb_header *edb = (struct edb_header *)(container_map + loc_addr);
+
+    /* is the target file an EDB with correct partial size that is smaller than the total size? */
+    if (ntohl(edb->magic)     == 'GEOM' &&
+        ntohl(edb->partl_len) ==  len   &&
+        ntohl(edb->total_len)  >  len)
+    {
+        printf("  [/] Mismatched EDB size: The reported size is %u bytes, but the external file record reports %u bytes.\n"
+               "                           Using the latter as it looks like a partial, lazy-loaded chunked container.\n\n", len, ntohl(edb->total_len));
+        extracted_size = ntohl(edb->total_len);
+
+        /* update the size of the memory mapping to account for the difference */
+        ftruncate(fd_extracted, extracted_size); extracted_map = mmap(0, extracted_size, PROT_WRITE, MAP_SHARED,  fd_extracted, 0);
+    }
 
 
-
-    printf("\n  [debug] %x %x len: %x actual hash: %x actual len: %x sector aligned: %x next: %x \n\n\n", /*extracted_map,*/ container_map, loc_addr, len,
-                                                                                *(uint32_t*)(container_map + loc_addr + 0x04),
-                                                                                *(uint32_t*)(container_map + loc_addr + 0x14),
-                                                                              ((*(uint32_t*)(container_map + loc_addr + 0x14)) & ~0x7ff) + 0x800,
-                                                                loc_addr +    ((*(uint32_t*)(container_map + loc_addr + 0x14)) & ~0x7ff) + 0x800);
-
-   if (len != *(uint32_t*)(container_map + loc_addr + 0x14))
-      printf("[unmatched size] !! %x vs %x  (diff of %x)\n\n\n\n", len, *(uint32_t*)(container_map + loc_addr + 0x14), *(uint32_t*)(container_map + loc_addr + 0x14) - len);
-
-
-    //memcpy(extracted_map, container_map + loc_addr, len);
+    memcpy(extracted_map, container_map + loc_addr, extracted_size);
 
 cleanup:
     munmap(container_map, container_size);
-    //munmap(extracted_map, extracted_size);
+    munmap(extracted_map, extracted_size);
 
 close:
     if (fd_container >= 0) close(fd_container);
-    //if (fd_extracted >= 0) close(fd_extracted);
+    if (fd_extracted >= 0) close(fd_extracted);
 }

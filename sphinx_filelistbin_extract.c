@@ -49,6 +49,17 @@ struct list_item
     } offsets[1];
 };
 
+struct edb_header
+{
+    uint32_t magic;         /* 'GEOM', flipped by endianess */
+    uint32_t hash_ref;      /* individual resource-locator thing */
+    uint32_t version;       /* as it appears in the Filelist descriptor */
+    uint32_t flags;         /* as it appears in the Filelist descriptor */
+    uint32_t unk_base_addr; /* 0x3EA8XXXX, physical DLL-like base address for relocations? */
+    uint32_t total_len;     /* the full size of the actual file */
+    uint32_t partl_len;     /* the partial size with just the initial chunk (as it appears in Filelist) */
+};
+
 bool is_le = false;
 #define ntohl(val) (!is_le ? be32toh(val) : le32toh(val))
 
@@ -248,9 +259,29 @@ void extract_to(char *descriptor, char *filename, uint32_t loc_addr, uint32_t lo
         printf("  [x] Couldn't mmap «%s» or «%s»: %s\n\n", containerpath, extractedfldr, strerror(errno)); goto cleanup;
     }
 
-    //printf("\n  [debug] %x %x %x %u\n", extracted_map, container_map, loc_addr, len);
 
-    memcpy(extracted_map, container_map + loc_addr, len);
+    /* workaround the partial EDB lengths as reported by Filelist descriptors by finding the actual size in
+       the target file itself and using that for the dump, don't use only the first chunk's length.
+
+       there's some kind of subsystem that conditionally loads sub-sections if the file is too big. */
+
+    struct edb_header *edb = (struct edb_header *)(container_map + loc_addr);
+
+    /* is the target file an EDB with correct partial size that is smaller than the total size? */
+    if (ntohl(edb->magic)     == 'GEOM' &&
+        ntohl(edb->partl_len) ==  len   &&
+        ntohl(edb->total_len)  >  len)
+    {
+        printf("  [/] Mismatched EDB size: The reported size is %u bytes, but the external file record reports %u bytes.\n"
+               "                           Using the latter as it looks like a partial, lazy-loaded chunked container.\n\n", len, ntohl(edb->total_len));
+        extracted_size = ntohl(edb->total_len);
+
+        /* update the size of the memory mapping to account for the difference */
+        ftruncate(fd_extracted, extracted_size); extracted_map = mmap(0, extracted_size, PROT_WRITE, MAP_SHARED,  fd_extracted, 0);
+    }
+
+
+    memcpy(extracted_map, container_map + loc_addr, extracted_size);
 
 cleanup:
     munmap(container_map, container_size);
