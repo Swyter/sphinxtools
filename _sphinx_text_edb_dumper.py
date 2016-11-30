@@ -3,6 +3,15 @@
 import struct
 
 text_edb = '/home/swyter/Escritorio/STANDALONE/DATA/actual_text_file.edb'
+hashcode = '/home/swyter/github/sphinxtools/x:/sphinx/albert/hashcodes.h'
+
+hashcodes = {}
+
+with open(hashcode, 'r') as f:
+  for line in f:
+    if (line[0] == '#'):
+      l = line.split()
+      hashcodes[int(l[2], 16)]=l[1]
 
 with open(text_edb, 'rb') as f:
 
@@ -53,6 +62,8 @@ with open(text_edb, 'rb') as f:
       print(str_absolute_offset)
 
       f.seek(str_absolute_offset)
-      print(f.read(str_length).decode('utf16'))
+      print(hashcodes[str_hash_ref], f.read(str_length).decode('utf16'))
 
       f.seek(fin_offset)
+
+print(hashcodes)
