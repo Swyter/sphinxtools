@@ -24,6 +24,8 @@ with open(text_edb, 'rb') as f:
   header_thing_size=struct.unpack('<I', f.read(4))[0]
   header_thing_elem=int((header_thing_size - 4) / (5 * 4))
 
+  subsections_hashcode = {}
+
   for i in range(header_thing_elem):
     spreadsheet_hash_ref=struct.unpack('<I', f.read(4))[0]
     spreadsheet_el_zeros=struct.unpack('<H', f.read(2))[0]
@@ -32,8 +34,11 @@ with open(text_edb, 'rb') as f:
     spreadsheet_00000000=struct.unpack('<I', f.read(4))[0]
     spreadsheet_10000000=struct.unpack('<I', f.read(4))[0]
 
-    print("%x" % spreadsheet_hash_ref, spreadsheet_00000000, spreadsheet_abs_nptr, spreadsheet_el_zeros, spreadsheet_el_index, spreadsheet_10000000)
+    print("%x" % spreadsheet_hash_ref, spreadsheet_el_zeros, spreadsheet_el_index, spreadsheet_abs_nptr, spreadsheet_00000000, spreadsheet_10000000)
 
+    subsections_hashcode[i] = spreadsheet_hash_ref
+
+  print(subsections_hashcode)
   exit()
 
   f.seek(0x210)
