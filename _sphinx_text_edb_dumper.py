@@ -36,10 +36,9 @@ with open(text_edb, 'rb') as f:
 
     print("%x" % spreadsheet_hash_ref, spreadsheet_el_zeros, spreadsheet_el_index, spreadsheet_abs_nptr, spreadsheet_00000000, spreadsheet_10000000)
 
-    subsections_hashcode[i] = spreadsheet_hash_ref
+    subsections_hashcode[i+1] = spreadsheet_hash_ref
 
   print(subsections_hashcode)
-  exit()
 
   f.seek(0x210)
 
@@ -58,14 +57,14 @@ with open(text_edb, 'rb') as f:
   print(subsections)
 
   for i in subsections:
-    print(i, '_X_X_X_X_X_X_X_X_X_')
+    print(('\n\n' + ('='*66) + '\nSpreadsheet %i --- Hashcode %x/%s\n' + ('='*66) + '\n') % (i, subsections_hashcode[i], hashcodes[subsections_hashcode[i]]))
 
     f.seek(subsections[i])
     f.read(4) # skip the first empty int prefixing every subsection
 
     string_elements=struct.unpack('<I', f.read(4))[0]
 
-    print(string_elements)
+    print("%i elements in this spreadsheet\n" % string_elements)
 
     for i in range (0, string_elements):
       str_hash_ref=struct.unpack('<I', f.read(4))[0]
@@ -85,7 +84,7 @@ with open(text_edb, 'rb') as f:
       print(str_absolute_offset)
 
       f.seek(str_absolute_offset)
-      print(hashcodes[str_hash_ref], '---', f.read(str_length).decode('utf16'), "\n")
+      print(hashcodes[str_hash_ref], '---', f.read(str_length).decode('utf16').replace('\x00',''), "\n")
 
       f.seek(fin_offset)
 
